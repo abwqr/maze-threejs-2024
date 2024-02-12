@@ -156,8 +156,8 @@ animate();
 // //         prevPassword = newPassword
 // //         setTimeout(function() {
             
-// //         }, 4000);
-// //     }
+//         }, 4000);
+//     }
 
 // //     // else{
 // //         // setTimeout(function() {
