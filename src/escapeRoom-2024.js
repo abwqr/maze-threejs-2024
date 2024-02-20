@@ -64,25 +64,20 @@ const transparentMaterial = new THREE.MeshBasicMaterial({
     opacity: 0.5, // Set the opacity (0 is fully transparent, 1 is fully opaque)
 });
 
-// Create a transparent group
-
-
-
-
-
 
 var lights = []
-function lighting(x,z){
+function lighting(x,y,z){
     // var x = Math.floor(Math.random() * -3000) + 1;
     // var z = Math.floor(Math.random() * -3000) + 1;
 
     // console.log(x, z)
-    const sphere = new THREE.SphereGeometry( 1, 1, 1 );
-    var light = new THREE.PointLight( 'gray', 0.5, 1500, );
+    const sphere = new THREE.SphereGeometry( 0.1, 0.1, 0.1 );
+    var light = new THREE.PointLight( 'yellow', 0.8,600 );
     // light.castShadow = true
-    light.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 'white' } ) ) );
+    light.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 'yellow' } ) ) );
     scene.add( light );
-    light.position.set(x,10,z)
+    light.position.set(x,y,z)
+    light.name = "candle_flame"
     lights.push(light)
 
 }
@@ -91,8 +86,9 @@ function lighting(x,z){
 var base = 10
 var wall_length = 150
 var wall_height = 150
+var wall_width = 15
 var path_width = 8
-var wall_space = (wall_length/1.2 + path_width/1.5) 
+var wall_space = (wall_length/1.4 + path_width/2) 
 
 var collidableMeshList = [];
 var oldCamera;
@@ -100,16 +96,60 @@ var oldCamera;
 
 
 
-var geo = new THREE.BoxGeometry( wall_height, wall_length, 5 );
+var geo = new THREE.BoxGeometry( wall_height, wall_length, wall_width );
 var mat = new THREE.MeshStandardMaterial({color: 0x525252});
 var textureLoader = new THREE.TextureLoader()
 const customTexture = textureLoader.load('assets/textures/scratches.jpg')
 
 const texture = new THREE.MeshStandardMaterial({ 
-    map: customTexture,
-    // depthWrite: false,
-    side: THREE.BackSide,
+    map: customTexture
 })
+
+function maze_boundary(){
+    var geo_boundary = new THREE.BoxGeometry( 150, 5000, 10 );
+    var textureLoader = new THREE.TextureLoader()
+    const customTexture = textureLoader.load('assets/textures/scratches.jpg')
+
+    const texture = new THREE.MeshStandardMaterial({ 
+        map: customTexture
+    })
+
+    var plane = new THREE.Mesh(geo_boundary, texture);
+    plane.rotation.z=THREE.Math.degToRad(-90);
+    plane.position.set(0, 50, -1200)
+    plane.receiveShadow = true;
+    scene.add(plane)
+
+    var plane2 = new THREE.Mesh(geo_boundary, texture);
+    plane2.rotation.z=THREE.Math.degToRad(-90);
+    plane2.position.set(0, 50, 1750)
+    plane2.receiveShadow = true;
+    scene.add(plane2)
+
+    var plane3 = new THREE.Mesh(geo_boundary, texture);
+    plane3.rotation.z=THREE.Math.degToRad(-90);
+    plane3.rotation.y=THREE.Math.degToRad(-90);
+    plane3.position.set(2200, 50, 0)
+    plane3.receiveShadow = true;
+    scene.add(plane3)
+
+    var plane4 = new THREE.Mesh(geo_boundary, texture);
+    plane4.rotation.z=THREE.Math.degToRad(-90);
+    plane4.rotation.y=THREE.Math.degToRad(-90);
+    plane4.position.set(-2200, 50, 0)
+    plane4.receiveShadow = true;
+    scene.add(plane4)
+
+    collidableMeshList.push(plane)
+    collidableMeshList.push(plane2)
+    collidableMeshList.push(plane3)
+    collidableMeshList.push(plane4)
+
+
+    // collidableMeshList.push(plane2)
+}
+
+maze_boundary()
 
 function bottom_left_corner(center_x, center_z){
     var x = center_x - wall_space
@@ -142,7 +182,7 @@ function top_right_corner(center_x, center_z){
     var z = center_z  + wall_space   
     // console.log(x-wall_length/2,z-wall_length/2)
     
-    var geo = new THREE.BoxGeometry( wall_height, wall_length, 5 );
+    // var geo = new THREE.BoxGeometry( wall_height, wall_length, wall_width );
     var mat = new THREE.MeshStandardMaterial({color: 0x525252});
     var plane = new THREE.Mesh(geo, texture);
 
@@ -168,7 +208,7 @@ function bottom_right_corner(center_x, center_z){
     var z = center_z  + wall_space   
     // console.log(x-wall_length/2,z-wall_length/2)
     
-    var geo = new THREE.BoxGeometry( wall_height, wall_length, 5 );
+    // var geo = new THREE.BoxGeometry( wall_height, wall_length, wall_width );
     var mat = new THREE.MeshStandardMaterial({color: 0x525252});
     var plane = new THREE.Mesh(geo, texture);
 
@@ -192,9 +232,6 @@ function bottom_right_corner(center_x, center_z){
 function top_left_corner(center_x, center_z){
     var x = center_x + wall_space
     var z = center_z  - wall_space   
-    // console.log(x-wall_length/2,z-wall_length/2)
-    
-    var geo = new THREE.BoxGeometry( wall_height, wall_length, 5 );
     var mat = new THREE.MeshStandardMaterial({color: 0x525252});
     var plane = new THREE.Mesh(geo, texture);
 
@@ -214,8 +251,6 @@ function top_left_corner(center_x, center_z){
     collidableMeshList.push(plane)
     collidableMeshList.push(plane2)
 }
-
-// live()
 
 function inner_sqaure(a,b){
     var x = path_width/2 + wall_length*2 + 2*wall_height/2 + path_width*8
@@ -286,6 +321,98 @@ function inner_sqaure(a,b){
     bottom_right_corner(x1,y2)
 }
 
+function zombie_wall(){
+    var geo_extra_wall = new THREE.BoxGeometry( wall_height, wall_space, wall_width );
+    var plane = new THREE.Mesh(geo_extra_wall, texture);
+    plane.rotation.z=THREE.Math.degToRad(-90);
+    plane.position.set(500, 50, -333)
+    plane.receiveShadow = true;
+    scene.add(plane)
+
+    // var geo_extra_wall = new THREE.BoxGeometry( wall_height, wall_space, wall_width );
+    var plane2 = new THREE.Mesh(geo_extra_wall, texture);
+    plane2.rotation.z=THREE.Math.degToRad(-90);
+    plane2.position.set(500, 50, -704.5)
+    plane2.receiveShadow = true;
+    scene.add(plane2)
+
+    var plane3 = new THREE.Mesh(geo_extra_wall, texture);
+    plane3.rotation.z=THREE.Math.degToRad(-90);
+    plane3.position.set(1020, 50, -704.5)
+    plane3.receiveShadow = true;
+    scene.add(plane3)
+
+    var plane4 = new THREE.Mesh(geo_extra_wall, texture);
+    plane4.rotation.z=THREE.Math.degToRad(-90);
+    plane4.position.set(1020, 50, -333)
+    plane4.receiveShadow = true;
+    scene.add(plane4)    
+
+    var geo_extra_wall_2 = new THREE.BoxGeometry( wall_height, wall_space*2, wall_width );
+
+    var plane5 = new THREE.Mesh(geo_extra_wall_2, texture);
+    plane5.rotation.z=THREE.Math.degToRad(-90);
+    plane5.position.set(780, 50, -704.5)
+    plane5.receiveShadow = true;
+    scene.add(plane5)
+
+    var plane6 = new THREE.Mesh(geo_extra_wall_2, texture);
+    plane6.rotation.z=THREE.Math.degToRad(-90);
+    plane6.position.set(780, 50, -333)
+    plane6.receiveShadow = true;
+    scene.add(plane6)
+
+    var plane7 = new THREE.Mesh(geo_extra_wall, texture);
+    plane7.rotation.z=THREE.Math.degToRad(-90);
+    plane7.rotation.y=THREE.Math.degToRad(-90);
+    plane7.position.set(1220, 50, -500)
+    plane7.receiveShadow = true;
+    scene.add(plane7)
+
+    collidableMeshList.push(plane)
+    collidableMeshList.push(plane2)
+    collidableMeshList.push(plane3)
+    collidableMeshList.push(plane4)
+    collidableMeshList.push(plane5)
+    collidableMeshList.push(plane6)
+    collidableMeshList.push(plane7)
+}
+
+function hugger_wall(){
+    var geo_extra_wall = new THREE.BoxGeometry( wall_height, wall_space, wall_width );
+    var geo_extra_wall_2 = new THREE.BoxGeometry( wall_height, wall_space*2, wall_width );
+
+    var plane = new THREE.Mesh(geo_extra_wall, texture);
+    plane.rotation.z=THREE.Math.degToRad(-90);
+    plane.position.set(1550, 50, 1365)
+    plane.receiveShadow = true;
+    scene.add(plane)
+
+    var plane2 = new THREE.Mesh(geo_extra_wall, texture);
+    plane2.rotation.z=THREE.Math.degToRad(-90);
+    plane2.position.set(1050, 50, 1365)
+    plane2.receiveShadow = true;
+    scene.add(plane2)
+
+    var plane3 = new THREE.Mesh(geo_extra_wall_2, texture);
+    plane3.rotation.z=THREE.Math.degToRad(-90);
+    plane3.position.set(1290, 50, 1365)
+    plane3.receiveShadow = true;
+    scene.add(plane3)
+
+    var plane4 = new THREE.Mesh(geo_extra_wall, texture);
+    plane4.rotation.z=THREE.Math.degToRad(-90);
+    plane4.rotation.y=THREE.Math.degToRad(-90);
+    plane4.position.set(1740, 50, 1570)
+    plane4.receiveShadow = true;
+    scene.add(plane4)
+
+    collidableMeshList.push(plane)
+    collidableMeshList.push(plane2)
+    collidableMeshList.push(plane3)
+    collidableMeshList.push(plane4)
+
+}
 function build_maze(shape){
     var x = path_width/2 + wall_length*2 + 2*wall_height/2 + path_width*8
 
@@ -318,15 +445,12 @@ function build_maze(shape){
                 inner_sqaure(-(3*x)*i,-(3*x)*j)        
         }   
     }
+
+    zombie_wall()
+    hugger_wall()
 }
 
-
-// Assuming you have a scene and camera already set up
-
-
-
-
-var player = { height: 1.8, speed: 5, turnSpeed: Math.PI * 0.025 };
+var player = { height: 1.8, speed: 15, turnSpeed: Math.PI * 0.025 };
 
 function addLight(model_name){
     let cameraPosition = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z); 
@@ -376,7 +500,7 @@ const audioLoader = new THREE.AudioLoader();
 const sounds = {};
 const clickList = []
 
-let huggy, zombie, zombie_idle
+let huggy, zombie, zombie_idle, candle, cupboard, hugger
 let zombie_path = []
 
 
@@ -384,14 +508,71 @@ build_maze(2)
 const spot = new THREE.AmbientLight(0xffffff, 8)
 // scene.add(spot)
 live()
+
+let model_hugger,animations_hugger
+function animation_hugger(animation_num,play){
+    if (animations_hugger && animations_hugger.length > 0) {
+        const mixer = new THREE.AnimationMixer(model_hugger);
+        const action = mixer.clipAction(animations_hugger[animation_num]);
+        console.log(animations_hugger.length)
+
+        action.timeScale = 1.0;
+        if(play)
+            action.play()
+    
+        function animate() {
+            requestAnimationFrame(animate);
+            mixer.update(0.016);
+            renderer.render(scene, camera);
+        }
+    
+        animate();
+    }
+}
+
+function addModel_hugger(model_file,name,x,y,z,scale,visibility,animation_num,sound_file,volume) {
+    return new Promise((resolve, reject) => {
+
+        audioLoader.load('assets/sounds/'.concat(sound_file), function (buffer) {
+            sound.setBuffer( buffer );
+            sound.setRefDistance( 100 );
+            sound.setMaxDistance( 150 );
+            sound.setLoop(true);
+            sound.setVolume(volume);
+            sound.playbackRate = 1.2;
+            sounds[name] = sound;
+            
+            loader.load('assets/models/'.concat(model_file), (gltf) => {
+                model_hugger = gltf.scene;
+                model_hugger.visible = visibility;
+                model_hugger.add(sound)
+                model_hugger.name = name
+                scene.add(model_hugger);
+                
+
+                model_hugger.scale.set(scale, scale, scale);
+                model_hugger.position.set(x, y, z);
+                model_hugger.receiveShadow = true;
+                animations_hugger = gltf.animations;
+
+            
+                
+
+                resolve(modelsArray, collidableMeshList);
+            }
+        )}, undefined, reject);
+    }
+    );
+}
+
 function addModelBoundary(name,box_scale,x,y,z){
     const transparentMaterial = new THREE.MeshBasicMaterial({
         color: 0x00ff00,
         transparent: true,
-        opacity: 0,
+        opacity: 1,
     });
     
-    const transparentBoxGeometry = new THREE.BoxGeometry(1, box_scale, box_scale);
+    const transparentBoxGeometry = new THREE.BoxGeometry(0.01, box_scale, box_scale);
     const transparentBox = new THREE.Mesh(transparentBoxGeometry, transparentMaterial);
     transparentBox.position.set(x,y,z)
     transparentBox.name = name.concat("-box")
@@ -413,8 +594,6 @@ function addModel(model_file,name,x,y,z,scale,visibility,animation_num,sound_fil
             sounds[name] = sound;
             
             loader.load('assets/models/'.concat(model_file), (gltf) => {
-                
-
                 const model = gltf.scene;
                 model.visible = visibility;
                 model.add(sound)
@@ -426,22 +605,25 @@ function addModel(model_file,name,x,y,z,scale,visibility,animation_num,sound_fil
                 model.position.set(x, y, z);
                 model.receiveShadow = true;
                 const animations = gltf.animations;
-                console.log(animations.length)
 
+            
                 if (animations && animations.length > 0) {
                     const mixer = new THREE.AnimationMixer(model);
                     const action = mixer.clipAction(animations[animation_num]);
-                    action.timeScale = 1.0;
-                    action.play();
+                    console.log(animations.length)
 
+                    action.timeScale = 1.0;
+                    action.play()
+                
                     function animate() {
                         requestAnimationFrame(animate);
                         mixer.update(0.016);
                         renderer.render(scene, camera);
                     }
-
+                
                     animate();
                 }
+
                 resolve(modelsArray, collidableMeshList);
             }
         )}, undefined, reject);
@@ -463,16 +645,29 @@ function getObjectByName(objectName) {
     return foundObject;
 }
 
+document.getElementById("message").style.visibility = "hidden";
+document.getElementById("section").style.visibility = "hidden";   
+
+function display_alert(text, timeout){
+    document.getElementById("message").style.visibility = "visible";
+    document.getElementById("section").style.visibility = "visible";
+    document.getElementById("message").innerHTML = text
+
+    if(timeout != -1){
+        setTimeout(function() {
+            document.getElementById("message").style.visibility = "hidden";
+            document.getElementById("section").style.visibility = "hidden";    
+        },timeout);
+    }
+}
 
 
 (async () => {
-    // await  addModel("greenModel",-100,0,14,-110,0,60);
-
     //// bunny
-    // await addModel("vanny.glb","bunny2",-1800,0,180,14,false,5,"evil-laughing.mp3",10);
-    // await addModel("vanny.glb","bunny",0,0,180,14,false,5,"evil-laughing.mp3",10);
-    // addModelBoundary("bunny",80,-810,50,180)
-    // addModelBoundary("bunny2",80,-800,50,180)
+    // await addModel("vanny.glb","bunny2",-1800,0,260,14,false,5,"evil-laughing.mp3",10);
+    // await addModel("vanny.glb","bunny",0,0,260,14,false,5,"evil-laughing.mp3",10);
+    // addModelBoundary("bunny",100,-900,50,260)
+    // addModelBoundary("bunny2",100,-890,50,260)
     // let bunny = getObjectByName("bunny") 
     // bunny.rotation.y += THREE.Math.degToRad(-90);
     // let bunny2 = getObjectByName("bunny2") 
@@ -480,49 +675,72 @@ function getObjectByName(objectName) {
     ////
 
     //// chess
-    // await addModel("decorative_chess.glb","chess",1125,0,-750,70,true,0,"evil-laughing.mp3",10);
+    // await addModel("decorative_chess.glb","chess",1050,0,-500,70,true,0,"evil-laughing.mp3",10);
     // let chess = getObjectByName('chess')
     // clickList.push(chess)
     ////
 
     //// dark man
-    // await addModel("dark_man.glb","black_man",0,0,180,14,false,5,"evil-laughing.mp3",10);
-    // await addModel("dark_man.glb","dark_man",-550,0,-4000,50,true,0,"evil-laughing.mp3",10);
-    // await addModel("dark_man.glb","dark_man2",-550,0,1000,50,true,0,"evil-laughing.mp3",10);
+    //// await addModel("dark_man.glb","black_man",0,0,180,14,false,0,"evil-laughing.mp3",10);
+    // await addModel("dark_man.glb","dark_man",2050,0,-250,50,true,0,"evil-laughing.mp3",10);
+    // await addModel("dark_man.glb","dark_man2",0,0,-250,50,true,0,"evil-laughing.mp3",10);
+    // addModelBoundary("dark_man",110,410,50,-250)
+    // addModelBoundary("dark_man2",110,400,50,-250)
+
+
+    // let dark_man = getObjectByName("dark_man")
+    // dark_man.rotation.y += THREE.Math.degToRad(-90)
     // let dark_man2 = getObjectByName("dark_man2")
-    // dark_man2.rotation.y += THREE.Math.degToRad(180)
-    // addModelBoundary("dark_man",80,-550,50,-800)
+    // dark_man2.rotation.y += THREE.Math.degToRad(90)
+
     // let dark_man_box = getObjectByName("dark_man-box")
-    // dark_man_box.rotation.y += THREE.Math.degToRad(90)
-    // addModelBoundary("dark_man2",80,-550,50,-790)
     // let dark_man_box2 = getObjectByName("dark_man2-box")
-    // dark_man_box2.rotation.y += THREE.Math.degToRad(90)
-    ////
-    // await addModel("scary-huggy-vent.glb","huggy",-180,-20,0,500,true,0,"evil-laughing.mp3",10); //180,-550
+    // ////
+    // await addModel("scary-huggy-vent.glb","huggy",550,-20,0,500,true,0,"evil-laughing.mp3",10); //180,-550
     // huggy = getObjectByName("huggy")
     // huggy.rotation.y += THREE.Math.degToRad(-90)
-    /////
+    // /////
+    // 1100,-20,1550
+    await addModel_hugger("hallucination_huggy.glb","hugger",1100,-20,1550,400,true,1,"evil-laughing.mp3",10); //180,-550
+    hugger = getObjectByName("hugger")
+    hugger.rotation.y += THREE.Math.degToRad(-90)
+    animation_hugger(0,0)
 
-    await addModel("scp-096.glb","idle_zombie",550,0,-550,30,true,4,"evil-laughing.mp3",10)
-    zombie_idle = getObjectByName("idle_zombie")
-    zombie_idle.rotation.y += THREE.Math.degToRad(90)
+    addModelBoundary("hugger",350,900,50,1550)
+    hugger = getObjectByName("hugger")
+    // hugger_box.rotation.y += THREE.Math.degToRad(90)
 
-    addModelBoundary("zombie",100,540,50,-410)
-    let zombie_box = getObjectByName("zombie-box")
-    zombie_box.rotation.y += THREE.Math.degToRad(90)
+    // setTimeout(() => {
+    //     animation_hugger(1,1)
+    // }, 5000);
 
-    addModelBoundary("zombie2",100,540,50,-700)
-    zombie_box = getObjectByName("zombie2-box")
-    zombie_box.rotation.y += THREE.Math.degToRad(90)
+    ///// ZOMBIE
+    // await addModel("scp-096.glb","idle_zombie",550,-20,-550,30,true,4,"evil-laughing.mp3",10)
+    // zombie_idle = getObjectByName("idle_zombie")
+    // zombie_idle.rotation.y += THREE.Math.degToRad(90)
+    
+    addModelBoundary("zombie",350,420,50,-520)
 
-    addModelBoundary("zombie3",100,420,50,-550)
-    // zombie_box = getObjectByName("zombie-box")
+    // addModelBoundary("zombie",100,540,50,-410)
+    // let zombie_box = getObjectByName("zombie-box")
     // zombie_box.rotation.y += THREE.Math.degToRad(90)
-
-    addModelBoundary("zombie4",100,690,50,-550)
+    /////
+    // addModelBoundary("zombie2",100,540,50,-700)
     // zombie_box = getObjectByName("zombie2-box")
     // zombie_box.rotation.y += THREE.Math.degToRad(90)
 
+    
+    // addModelBoundary("zombie4",100,690,50,-550)
+    
+    // ///// CUPBOARD AND CANDLE
+    await addModel("cupboard.glb","cupboard",1700,30,1700,0.6,true,0,"evil-laughing.mp3",10)
+    cupboard = getObjectByName("cupboard")
+    cupboard.rotation.y += THREE.Math.degToRad(180) 
+
+    await addModel("candle.glb","candle",1705,15,1680,0.05,true,0,"evil-laughing.mp3",10)
+    candle = getObjectByName("candle")
+    candle.rotation.y += THREE.Math.degToRad(90) 
+    ////////////
     if(huggy){
         start = model1[model1_index][0]
         end = model1[model1_index][1]
@@ -534,11 +752,14 @@ function getObjectByName(objectName) {
             huggy.position.z = start
         }
     }
-    // await addModel("taunt.glb","taunt",0,0,0,10,true,0,"evil-laughing.mp3",10);
+    // await addModel("satan.glb","taunt",0,-20,0,0.5,true,0,"evil-laughing.mp3",10);
     
-    // await addModel("mutantical.glb","mutantical",0,0,0,10,true,4,"evil-laughing.mp3",10);
+    // await addModel("fallen_angel.glb","angel",0,20,0,1,true,4,"evil-laughing.mp3",10);
+    // let angel = getObjectByName("angel")
+    // angel.rotation.x += THREE.Math.degToRad(90)
 
-    // await addModel("zombie_monster_slasher_necromorph.glb","zombie_monster_slasher_necromorph",0,0,0,30,true,0,"evil-laughing.mp3",10);
+
+    // await addModel("devil_on_a_throne.glb","devil",0,-20,0,0.5,true,0,"evil-laughing.mp3",10);
 
     // await addModel("monster_dogday_-_poppy_playtime.glb","monster_dogday_-_poppy_playtime",0,0,0,30,true,1,"evil-laughing.mp3",10); //0 or 1 animation
    
@@ -546,9 +767,41 @@ function getObjectByName(objectName) {
 
 
 let zombie_angle = THREE.Math.degToRad(90)
+let hugger_angle = THREE.Math.degToRad(90)
+
 let zombie_enable = 1
 let zombie_follow = 0
+var paper_visible,paper_semi_visible
 
+function candle_paper(){
+    var geo_paper = new THREE.BoxGeometry( 10, 15, 0.1 );
+    var textureLoader = new THREE.TextureLoader()
+    var customTexture_paper_visible = textureLoader.load('assets/images/paper_visible.png')
+    var customTexture_paper_semi_visible = textureLoader.load('assets/images/paper_semi_visible.png')
+    const texture_paper_visible = new THREE.MeshStandardMaterial({ 
+        map: customTexture_paper_visible,
+    })
+    paper_visible = new THREE.Mesh(geo_paper, texture_paper_visible);
+    paper_visible.rotation.y += THREE.Math.degToRad(90)
+    paper_visible.position.set(1705,25,1697)
+    scene.add(paper_visible)
+
+    const texture_paper_semi_visible = new THREE.MeshStandardMaterial({ 
+        map: customTexture_paper_semi_visible,
+    })
+
+    paper_semi_visible = new THREE.Mesh(geo_paper, texture_paper_semi_visible);
+    paper_semi_visible.position.set(1705,25,1697)
+    paper_semi_visible.rotation.y += THREE.Math.degToRad(90)
+
+    scene.add(paper_semi_visible)
+
+
+    lighting(1705,28,1680)
+}
+candle_paper()
+let candle_flame = getObjectByName("candle_flame")
+let clock, clock_hugger
 
 
 function intersection(direction, distance) {
@@ -559,7 +812,7 @@ function intersection(direction, distance) {
     const intersections = raycaster.intersectObjects(collidableMeshList, true);
     // console.log(collidableMeshList)
     if (intersections.length > 0) {
-        console.log(intersections)
+        // console.log(intersections)
         if (intersections[0].object.name === "greenModel-box"){
             const model = getObjectByName("greenModel");
 
@@ -630,20 +883,14 @@ function intersection(direction, distance) {
             }
         }
 
-        else if (intersections[0].object.name === "zombie-box" || intersections[0].object.name === "zombie2-box" || intersections[0].object.name === "zombie3-box" || intersections[0].object.name === "zombie4-box"){
-            let box = getObjectByName("zombie-box");
-            scene.remove(box)
-            collidableMeshList.pop(box)
-            box = getObjectByName("zombie2-box");
-            scene.remove(box)
-            collidableMeshList.pop(box)            
-            box = getObjectByName("zombie3-box");
-            scene.remove(box)
-            collidableMeshList.pop(box)            
-            box = getObjectByName("zombie4-box");
-            scene.remove(box)
-            collidableMeshList.pop(box)
-
+        else if (intersections[0].object.name === "zombie-box"){
+            if(hugger_hit != 1){
+                let box = getObjectByName("zombie-box");
+                scene.remove(box)
+                collidableMeshList.pop(box)
+                console.log("hit",5000)
+                clock = new THREE.Clock();    
+            }
 
 
             function temp(){
@@ -652,55 +899,52 @@ function intersection(direction, distance) {
             
             (async()=>{
                 zombie_idle.visibility = false
-                await addModel("scp-096.glb","zombie",550,0,-550,30,true,9,"evil-laughing.mp3",10)
+                await addModel("scp-096.glb","zombie",550,-20,-550,30,true,9,"evil-laughing.mp3",10)
                 // remove_boxes()
                 zombie = getObjectByName("zombie")
                 
                 if(zombie){
-                    if(intersections[0].object.name === "zombie2-box"){
-                        zombie.rotation.y += THREE.Math.degToRad(180)
-                        // console.log("zombie")
-                    }
-
-                    else if(intersections[0].object.name === "zombie3-box"){
-                        zombie.rotation.y += THREE.Math.degToRad(-90)
-                        // console.log("zombie")
-                    }
-
-                    else if(intersections[0].object.name === "zombie4-box"){
-                        zombie.rotation.y += THREE.Math.degToRad(90)
-                        // console.log("zombie")
-                    }
+                    zombie.rotation.y += THREE.Math.degToRad(-90)
                     zombie_follow = 1    
                     zombie_move = 1
+                    display_alert("RUN",5000)
                 }
-                // let zombie_idle = getObjectByName("zombie-idle")
                 scene.remove(zombie_idle)
 
             })();
-
-
-            
-
-            
-
-            // const model = getObjectByName("dark_man2");
-            // console.log(model)
-            // if (model) {
-            //     dark_man2 = true
-            //     let dark_man_box2 = getObjectByName("dark_man2-box")
-            //     scene.remove(dark_man_box2)
-            //     collidableMeshList.pop(dark_man_box2)
-            //     let dark_man_box = getObjectByName("dark_man-box")
-            //     scene.remove(dark_man_box)
-            //     collidableMeshList.pop(dark_man_box)
-            //     addLight("dark_man2");
-            // }
         }
 
+        else if (intersections[0].object.name === "hugger-box"){
+            if(zombie_hit != 1){
+                let box = getObjectByName("hugger-box");
+                scene.remove(box)
+                collidableMeshList.pop(box)
+                // console.log("hit",5000)
+                clock_hugger = new THREE.Clock();    
+            }
 
-        
-        
+
+            function temp(){
+                console.log(123)
+            }
+            
+            (async()=>{
+                animation_hugger(1,1)
+                // zombie_idle.visibility = false
+                // await addModel("scp-096.glb","zombie",550,-20,-550,30,true,9,"evil-laughing.mp3",10)
+                // // remove_boxes()
+                
+                
+                if(hugger){
+                    // zombie.rotation.y += THREE.Math.degToRad(-90)
+                    hugger_follow = 1    
+                    hugger_move = 1
+                    display_alert("RUN",5000)
+                }
+                // scene.remove(zombie_idle)
+
+            })();
+        }
         return true;
     }
 
@@ -719,7 +963,7 @@ function onMouseClick(event) {
     if (intersects.length > 0) {
         const clickedObject = getObjectByName("chess")
         console.log(clickedObject)
-        const imageUrl = 'assets/images/moon.jpg';
+        const imageUrl = 'assets/images/chess.png';
 
         onObjectClick(imageUrl)
         
@@ -764,8 +1008,6 @@ function onObjectClick(imageUrl) {
 const fullscreenOverlay = document.getElementById('fullscreenOverlay');
 const fullscreenImage = document.getElementById('fullscreenImage');
 
-
-
 function lightMovement(){
     var len = lights.length
     var i = 0
@@ -807,7 +1049,7 @@ plane.receiveShadow = true;
 scene.add(new THREE.AxesHelper(2000))
 
 
-const clock = new THREE.Clock()
+// const clock = new THREE.Clock()
 var keyboard = {};
 function keyDown(e) {
     keyboard[e.keyCode] = true;
@@ -845,20 +1087,38 @@ function addTorch(){
 let spotLight = addTorch()
 let temp_sound_var = 0
 // [[start,end,steps,axis="x"/"z",next]]
-let model1 = [[-800,300,1,"z",-550],[-800,300,1,"z",-1300],[-800,300,1,"z",-180]]
+let model1 = [[-800,300,5,"z",550],[-800,300,5,"z",260],[-800,300,5,"z",-1050],[-800,300,5,"z",-550]]
 let model1_index = 0
 let start = model1[model1_index][0]
 let end = model1[model1_index][1]
 let model1_count = start
 let next_model1 = model1[model1_index][4]
-let temp_var = 0
-let arr = [1,2,3,4,5]
+
 let zombie_move = 0
-
+let current_paper = 0
+let elapsedTime
+let zombie_run = 0, hugger_run = 0
+let movement = 1
+let hit_clock, hit_elapsedTime, elapsedTime_hugger, hit_clock_hugger
+let hugger_path = [], hugger_move = 0, hugger_follow = 1, zombie_hit=0,hugger_hit=0
 function animate() {
-
     requestAnimationFrame( animate );
-
+    
+    zombie_run = 0
+    hugger_run = 0
+    
+    if(clock_hugger){
+        elapsedTime_hugger = clock_hugger.getElapsedTime();
+        if(elapsedTime_hugger > 5){
+            console.log(elapsedTime_hugger)
+        }
+    }
+    if(clock){
+        elapsedTime = clock.getElapsedTime();
+        // if(elapsedTime > 5){
+        //     console.log(elapsedTime)
+        // }
+    } 
     if(huggy){
         if(model1_count === end){
             model1_index++
@@ -890,103 +1150,255 @@ function animate() {
     TWEEN.update() 
     const moveDirection = new THREE.Vector3();
     
-    if (keyboard[87]) { // W key (forward)
-        if (temp_sound_var === 0){
-            listener.context.resume().then(() => {
-                sound.play();
-            });
-            temp_sound_var = 1
+    if(paper_visible && paper_semi_visible){
+        if(current_paper===0){
+            setTimeout(function() {
+                paper_visible.visible = true
+                paper_semi_visible.visible = false
+                current_paper = 1
+            },2000);
+            
+            if(candle_flame.intensity <= 1 && candle_flame.intensity > 0.2){
+                candle_flame.intensity -= 0.01
+                
+            }
         }
-        moveDirection.set(
-            -Math.sin(camera.rotation.y),
-            0,
-            -Math.cos(camera.rotation.y)
-        );
+        
+        else if(current_paper===1){
+            setTimeout(function() {
+                paper_visible.visible = false
+                paper_semi_visible.visible = true
+                
+                current_paper = 0
+            },2000);
+                if(candle_flame.intensity > 0 && candle_flame.intensity < 0.8){
+                    candle_flame.intensity += 0.01
+                    
+                }
+        }
     }
 
-    if (keyboard[83]) { // S key (backward)
-        moveDirection.set(
-            Math.sin(camera.rotation.y),
-            0,
-            Math.cos(camera.rotation.y)
-        );
-    }
-
-    if (keyboard[87] || keyboard[83]) {
-        // directionalLight.distance = 30
-
-        cameraPosition = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z); 
-        spotLight.position.copy(cameraPosition);
-        targetPosition = new THREE.Vector3(cameraPosition.x, 0, cameraPosition.z); 
-        spotLight.target.position.copy(targetPosition);
-        
-        moveDirection.normalize(); // Ensure the movement direction is normalized
-        const isColliding = intersection(moveDirection, 50);
-        const cameraDirection = new THREE.Vector3();
-        camera.getWorldDirection(cameraDirection);
-        
-        spotLight.target.position.x = spotLight.position.x + cameraDirection.x * lightTurn;
-        spotLight.target.position.z = spotLight.position.z + cameraDirection.z * lightTurn;
-
-        if (!isColliding) {
-            camera.position.x += moveDirection.x * player.speed;
-            camera.position.z += moveDirection.z * player.speed;  
+    if(movement){
+        if (keyboard[87]) { // W key (forward)
+            if (temp_sound_var === 0){
+                listener.context.resume().then(() => {
+                    sound.play();
+                });
+                temp_sound_var = 1
+            }
+            moveDirection.set(
+                -Math.sin(camera.rotation.y),
+                0,
+                -Math.cos(camera.rotation.y)
+            );
         }
-        if(zombie_follow)
-            zombie_path.push(cameraPosition)
+
+        if (keyboard[83]) { // S key (backward)
+            moveDirection.set(
+                Math.sin(camera.rotation.y),
+                0,
+                Math.cos(camera.rotation.y)
+            );
+        }
+
+        if (keyboard[87] || keyboard[83]) {
+            // directionalLight.distance = 30
+
+            cameraPosition = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z); 
+            spotLight.position.copy(cameraPosition);
+            targetPosition = new THREE.Vector3(cameraPosition.x, 0, cameraPosition.z); 
+            spotLight.target.position.copy(targetPosition);
+            
+            moveDirection.normalize(); // Ensure the movement direction is normalized
+            const isColliding = intersection(moveDirection, 50);
+            const cameraDirection = new THREE.Vector3();
+            camera.getWorldDirection(cameraDirection);
+            
+            spotLight.target.position.x = spotLight.position.x + cameraDirection.x * lightTurn;
+            spotLight.target.position.z = spotLight.position.z + cameraDirection.z * lightTurn;
+
+            if (!isColliding) {
+                camera.position.x += moveDirection.x * player.speed;
+                camera.position.z += moveDirection.z * player.speed;  
+            }
+
+            if(zombie_follow){
+                zombie_path.push(cameraPosition)
+            }
+
+            if(hugger_follow){
+                hugger_path.push(cameraPosition)
+            }
+
+            if(elapsedTime > 5){
+                if(!zombie_run && zombie_follow){
+                    zombie_run = 1
+                    console.log("move")
+                    let path = zombie_path.shift()
+                    // path = zombie_path.shift()
+                    console.log(zombie_path.length)
+                    zombie.rotation.y = zombie_angle
+                    if(zombie_path.length > 20){
+                        setTimeout(function() {
+                            zombie.position.set(path.x,-20,path.z)
+                            spotLight.intensity = 0.8                    
+                        },0)
+                    }
+                    else{
+                        spotLight.intensity = 0
+                        hit_clock = new THREE.Clock()
+                        movement = 0
+                        zombie_follow = 0
+                        zombie_hit = 1
+                        scene.remove(zombie)
+                    }
+                }
+            }
+
+            if(elapsedTime_hugger > 5){
+                if(!hugger_run && hugger_follow){
+                    hugger_run = 1
+                    console.log("move")
+                    let path = hugger_path.shift()
+                    // path = hugger_path.shift()
+                    console.log(hugger_path.length)
+                    hugger.rotation.y = hugger_angle
+                    if(hugger_path.length > 20){
+                        setTimeout(function() {
+                            hugger.position.set(path.x,-20,path.z)
+                            spotLight.intensity = 0.8                    
+                        },0)
+                    }
+                    else{
+                        spotLight.intensity = 0
+                        hit_clock_hugger = new THREE.Clock()
+                        movement = 0
+                        hugger_follow = 0
+                        scene.remove(hugger)
+                        hugger_hit = 1
+                    }
+                }
+            }
+                
+        }
+
+        else{
+            if(elapsedTime > 5){
+                if(!zombie_run && zombie_follow){
+                    console.log("run")
+                    let path = zombie_path.shift()
+                    // path = zombie_path.shift()
+                    console.log(zombie_path.length)
+                    zombie.rotation.y = zombie_angle
+                    if(zombie_path.length > 20){
+                        setTimeout(function() {
+                            zombie.position.set(path.x,-20,path.z)
+                            spotLight.intensity = 0.8                    
+                        },0)
+                    }
+                    else{
+                        spotLight.intensity = 0
+                        hit_clock = new THREE.Clock()
+                        movement = 0
+                        zombie_follow = 0
+                        scene.remove(zombie)
+                        zombie_hit = 1
+                    }
+                }
+            }
+
+            if(elapsedTime_hugger > 5){
+                if(!hugger_run && hugger_follow){
+                    hugger_run = 1
+                    console.log("move")
+                    let path = hugger_path.shift()
+                    // path = hugger_path.shift()
+                    console.log(hugger_path.length)
+                    hugger.rotation.y = hugger_angle
+                    if(hugger_path.length > 20){
+                        setTimeout(function() {
+                            hugger.position.set(path.x,-20,path.z)
+                            spotLight.intensity = 0.8                    
+                        },0)
+                    }
+                    else{
+                        spotLight.intensity = 0
+                        hit_clock_hugger = new THREE.Clock()
+                        movement = 0
+                        hugger_follow = 0
+                        scene.remove(hugger)
+                        hugger_hit = 1
+                    }
+                }
+            }
+        //     if(zombie && zombie_move){
+        //         let path = zombie_path.shift()
+
+        //         if(path){
+        //             if(zombie_path.length > 15){
+        //                 zombie.position.set(path.x,-20,path.z)
+        //                 spotLight.intensity = 0.8
+        //             }   
+        //             else{
+        //                 spotLight.intensity = 0
+        //             }         
+        //             zombie.rotation.y = zombie_angle
+        //         }          
+        //         zombie_move = 0      
+        //     }
+        }
+
+        if (keyboard[68]) { // A key (turn right)
+            camera.rotation.y -= player.turnSpeed;
+            zombie_angle -= player.turnSpeed
+            const cameraDirection = new THREE.Vector3();
+            camera.getWorldDirection(cameraDirection);
+            // console.log("Camera Direction:", cameraDirection);
+            // console.log("Spotlight Direction:", spotLight.target.position);
+            // console.log("Camera:", cameraDirection);
+            spotLight.target.position.x = spotLight.position.x + cameraDirection.x * lightTurn;
+            spotLight.target.position.z = spotLight.position.z + cameraDirection.z * lightTurn;
+        }
+
+        if (keyboard[65]) { // D key (turn left)
+            camera.rotation.y += player.turnSpeed;
+            zombie_angle += player.turnSpeed
+            const cameraDirection = new THREE.Vector3();
+            camera.getWorldDirection(cameraDirection);
+            // console.log("Camera Direction:", cameraDirection);
+            // console.log("Spotlight Direction:", spotLight.target.position);
+            // console.log("Camera:", cameraDirection);
+            spotLight.target.position.x = spotLight.position.x + cameraDirection.x * lightTurn;
+            spotLight.target.position.z = spotLight.position.z + cameraDirection.z * lightTurn;
+        }
     }
 
     else{
-        if(zombie && zombie_move){
-            let path = zombie_path.shift()
-
-            if(path){
+        if(hit_clock && zombie_hit===1)
+            hit_elapsedTime = hit_clock.getElapsedTime();
+        
+        if(hit_clock_hugger && hugger_hit===1)
+            hit_elapsedTime = hit_clock_hugger.getElapsedTime();
+        
+        if(zombie_hit===1 || hugger_hit===1){
+            if(parseInt(hit_elapsedTime) >= 20){
+                display_alert(20-parseInt(hit_elapsedTime),1000)    
+                movement = 1
+                spotLight.intensity = 0.8  
+                if(hugger_hit===1)
+                    hugger_hit=-1
+                else
+                    zombie_hit=-1      
+            }
                 
-                if(zombie_path.length > 15){
-                    zombie.position.set(path.x,0,path.z)
-                    spotLight.intensity = 0.8
-
-                }   
-                else{
-                    spotLight.intensity = 0
-                }         
-                zombie.rotation.y = zombie_angle
-        }          
-            zombie_move = 0      
+            else if(parseInt(hit_elapsedTime) < 20){
+                setTimeout(() => {
+                    display_alert(20-parseInt(hit_elapsedTime),-1)
+                }, 1000);    
+            }
         }
-    }
+        
 
-    if(zombie_follow && zombie_move === 0){
-        setTimeout(function() {
-            zombie_move = 1                
-        },2000);
-    }
-
-
-    if (keyboard[68]) { // A key (turn right)
-
-
-        camera.rotation.y -= player.turnSpeed;
-        zombie_angle -= player.turnSpeed
-        const cameraDirection = new THREE.Vector3();
-        camera.getWorldDirection(cameraDirection);
-        // console.log("Camera Direction:", cameraDirection);
-        // console.log("Spotlight Direction:", spotLight.target.position);
-        // console.log("Camera:", cameraDirection);
-        spotLight.target.position.x = spotLight.position.x + cameraDirection.x * lightTurn;
-        spotLight.target.position.z = spotLight.position.z + cameraDirection.z * lightTurn;
-    }
-
-    if (keyboard[65]) { // D key (turn left)
-        camera.rotation.y += player.turnSpeed;
-        zombie_angle += player.turnSpeed
-        const cameraDirection = new THREE.Vector3();
-        camera.getWorldDirection(cameraDirection);
-        // console.log("Camera Direction:", cameraDirection);
-        // console.log("Spotlight Direction:", spotLight.target.position);
-        // console.log("Camera:", cameraDirection);
-        spotLight.target.position.x = spotLight.position.x + cameraDirection.x * lightTurn;
-        spotLight.target.position.z = spotLight.position.z + cameraDirection.z * lightTurn;
     }
 
     if (start_bunny2){
@@ -1040,7 +1452,7 @@ function animate() {
         scene.remove(dark_man2)
         dark_man.visible = true;
 
-        dark_man.position.z += 20
+        dark_man.position.x -= 20
         let dark_man_spotlight = getObjectByName("dark_man_light");
         // console.log(bunny_spotlight)
         if (dark_man && dark_man_spotlight){
@@ -1063,7 +1475,7 @@ function animate() {
         scene.remove(dark_man2_model)
         dark_man.visible = true;
 
-        dark_man.position.z -= 20
+        dark_man.position.x += 20
         let dark_man_spotlight = getObjectByName("dark_man2_light");
         // console.log(bunny_spotlight)
         if (dark_man && dark_man_spotlight){
@@ -1079,6 +1491,9 @@ function animate() {
             }
         }
     }
+    // if(candle)
+    //     candle.rotation.y += THREE.Math.degToRad(90) 
+
     window.addEventListener('keydown', keyDown);
     window.addEventListener('keyup', keyUp);
     renderer.render( scene, camera );

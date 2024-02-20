@@ -48,15 +48,23 @@
           color: white;
           cursor: pointer;
       }
+
   </style>
 </head>
 
 <html>
 
     <body>
+      <main>
+        <section id = "section">
+          <p id="message"></p>
+  
+          <input type="hidden" id="password">
+        </section>
+      </main>
       <div id="fullscreenOverlay" style="display: none;">
         <span onclick="closeFullscreenImage()" class="close">&times;</span>
-        <img id="fullscreenImage" src="assets/images/moon.jpg" alt="Fullscreen Image">
+        <img id="fullscreenImage" src="assets/images/chess.png" alt="Fullscreen Image">
     </div>
         <script type="module" src = "./escapeRoom-2024.js"></script>
         <div id="overlay">
