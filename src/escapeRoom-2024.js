@@ -509,14 +509,34 @@ const spot = new THREE.AmbientLight(0xffffff, 8)
 // scene.add(spot)
 live()
 
-let model_hugger,animations_hugger
+let model_hugger,animations_hugger,model_zombie,animations_zombie
 function animation_hugger(animation_num,play){
     if (animations_hugger && animations_hugger.length > 0) {
         const mixer = new THREE.AnimationMixer(model_hugger);
         const action = mixer.clipAction(animations_hugger[animation_num]);
         console.log(animations_hugger.length)
 
-        action.timeScale = 1.0;
+        action.timeScale = 6.0;
+        if(play)
+            action.play()
+    
+        function animate() {
+            requestAnimationFrame(animate);
+            mixer.update(0.016);
+            renderer.render(scene, camera);
+        }
+    
+        animate();
+    }
+}
+
+function animation_zombie(animation_num,play){
+    if (animations_zombie && animations_zombie.length > 0) {
+        const mixer = new THREE.AnimationMixer(model_zombie);
+        const action = mixer.clipAction(animations_zombie[animation_num]);
+        console.log(animations_zombie.length)
+
+        action.timeScale = 6.0;
         if(play)
             action.play()
     
@@ -565,11 +585,42 @@ function addModel_hugger(model_file,name,x,y,z,scale,visibility,animation_num,so
     );
 }
 
+function addModel_zombie(model_file,name,x,y,z,scale,visibility,animation_num,sound_file,volume) {
+    return new Promise((resolve, reject) => {
+
+        audioLoader.load('assets/sounds/'.concat(sound_file), function (buffer) {
+            sound.setBuffer( buffer );
+            sound.setRefDistance( 100 );
+            sound.setMaxDistance( 150 );
+            sound.setLoop(true);
+            sound.setVolume(volume);
+            sound.playbackRate = 1.2;
+            sounds[name] = sound;
+            
+            loader.load('assets/models/'.concat(model_file), (gltf) => {
+                model_zombie = gltf.scene;
+                model_zombie.visible = visibility;
+                model_zombie.add(sound)
+                model_zombie.name = name
+                scene.add(model_zombie);
+                
+
+                model_zombie.scale.set(scale, scale, scale);
+                model_zombie.position.set(x, y, z);
+                model_zombie.receiveShadow = true;
+                animations_zombie = gltf.animations;
+                resolve(modelsArray, collidableMeshList);
+            }
+        )}, undefined, reject);
+    }
+    );
+}
+
 function addModelBoundary(name,box_scale,x,y,z){
     const transparentMaterial = new THREE.MeshBasicMaterial({
         color: 0x00ff00,
         transparent: true,
-        opacity: 1,
+        opacity: 0,
     });
     
     const transparentBoxGeometry = new THREE.BoxGeometry(0.01, box_scale, box_scale);
@@ -715,9 +766,10 @@ function display_alert(text, timeout){
     // }, 5000);
 
     ///// ZOMBIE
-    // await addModel("scp-096.glb","idle_zombie",550,-20,-550,30,true,4,"evil-laughing.mp3",10)
-    // zombie_idle = getObjectByName("idle_zombie")
-    // zombie_idle.rotation.y += THREE.Math.degToRad(90)
+    await addModel_zombie("scp-096.glb","zombie",550,-20,-550,40,true,4,"evil-laughing.mp3",10)
+    zombie = getObjectByName("zombie")
+    animation_zombie(0,0)
+    zombie.rotation.y += THREE.Math.degToRad(-90)
     
     addModelBoundary("zombie",350,420,50,-520)
 
@@ -771,7 +823,7 @@ let hugger_angle = THREE.Math.degToRad(90)
 
 let zombie_enable = 1
 let zombie_follow = 0
-var paper_visible,paper_semi_visible
+var paper_visible,paper_semi_visible,hugger_follow = 0
 
 function candle_paper(){
     var geo_paper = new THREE.BoxGeometry( 10, 15, 0.1 );
@@ -884,13 +936,14 @@ function intersection(direction, distance) {
         }
 
         else if (intersections[0].object.name === "zombie-box"){
-            if(hugger_hit != 1){
+            // if(hugger_hit != 1){
+                zombie_follow = 1    
                 let box = getObjectByName("zombie-box");
                 scene.remove(box)
                 collidableMeshList.pop(box)
                 console.log("hit",5000)
                 clock = new THREE.Clock();    
-            }
+            // }
 
 
             function temp(){
@@ -898,30 +951,30 @@ function intersection(direction, distance) {
             }
             
             (async()=>{
-                zombie_idle.visibility = false
-                await addModel("scp-096.glb","zombie",550,-20,-550,30,true,9,"evil-laughing.mp3",10)
-                // remove_boxes()
-                zombie = getObjectByName("zombie")
+                
+                // zombie.visible = false
+                // await addModel("scp-096.glb","zombie",550,-20,-550,30,true,9,"evil-laughing.mp3",10)
+                // // remove_boxes()
+                // zombie = getObjectByName("zombie")
                 
                 if(zombie){
-                    zombie.rotation.y += THREE.Math.degToRad(-90)
-                    zombie_follow = 1    
+                    // zombie.rotation.y += THREE.Math.degToRad(-90)
                     zombie_move = 1
                     display_alert("RUN",5000)
                 }
-                scene.remove(zombie_idle)
 
             })();
         }
 
         else if (intersections[0].object.name === "hugger-box"){
-            if(zombie_hit != 1){
+            // if(zombie_hit != 1){
                 let box = getObjectByName("hugger-box");
                 scene.remove(box)
                 collidableMeshList.pop(box)
                 // console.log("hit",5000)
                 clock_hugger = new THREE.Clock();    
-            }
+                hugger_follow = 1    
+            // }
 
 
             function temp(){
@@ -929,19 +982,10 @@ function intersection(direction, distance) {
             }
             
             (async()=>{
-                animation_hugger(1,1)
-                // zombie_idle.visibility = false
-                // await addModel("scp-096.glb","zombie",550,-20,-550,30,true,9,"evil-laughing.mp3",10)
-                // // remove_boxes()
-                
-                
                 if(hugger){
-                    // zombie.rotation.y += THREE.Math.degToRad(-90)
-                    hugger_follow = 1    
                     hugger_move = 1
                     display_alert("RUN",5000)
                 }
-                // scene.remove(zombie_idle)
 
             })();
         }
@@ -1097,10 +1141,10 @@ let next_model1 = model1[model1_index][4]
 let zombie_move = 0
 let current_paper = 0
 let elapsedTime
-let zombie_run = 0, hugger_run = 0
+let zombie_run = 0, hugger_run = 0, zombie_stop = 1
 let movement = 1
 let hit_clock, hit_elapsedTime, elapsedTime_hugger, hit_clock_hugger
-let hugger_path = [], hugger_move = 0, hugger_follow = 1, zombie_hit=0,hugger_hit=0
+let hugger_path = [], hugger_move = 0, zombie_hit=0,hugger_hit=0
 function animate() {
     requestAnimationFrame( animate );
     
@@ -1109,15 +1153,24 @@ function animate() {
     
     if(clock_hugger){
         elapsedTime_hugger = clock_hugger.getElapsedTime();
-        if(elapsedTime_hugger > 5){
-            console.log(elapsedTime_hugger)
+        if(parseInt(elapsedTime_hugger) < 5 && parseInt(elapsedTime_hugger) > 0){
+            display_alert(5-parseInt(elapsedTime_hugger),0)    
+        }
+        else if(parseInt(elapsedTime_hugger) === 5){
+            animation_hugger(1,1)
+            display_alert(5-parseInt(elapsedTime_hugger),1000)    
         }
     }
-    if(clock){
+    if(clock && zombie_follow){
         elapsedTime = clock.getElapsedTime();
-        // if(elapsedTime > 5){
-        //     console.log(elapsedTime)
-        // }
+        
+        if(parseInt(elapsedTime) < 5 && parseInt(elapsedTime) > 0){
+            display_alert(5-parseInt(elapsedTime),0)    
+        }
+        else if(parseInt(elapsedTime) === 5){
+            animation_zombie(9,1)
+            display_alert(5-parseInt(elapsedTime),1000)    
+        }
     } 
     if(huggy){
         if(model1_count === end){
@@ -1223,37 +1276,41 @@ function animate() {
             }
 
             if(zombie_follow){
+                console.log("zombie")
                 zombie_path.push(cameraPosition)
+                if(elapsedTime > 5 && elapsedTime < 20 && zombie_stop){
+                    if(!zombie_run && zombie_follow){
+                        zombie_run = 1
+                        console.log("move")
+                        let path = zombie_path.shift()
+                        // path = zombie_path.shift()
+                        console.log(zombie_path.length)
+                        zombie.rotation.y = zombie_angle
+                        if(zombie_path.length > 5){
+                            // setTimeout(function() {
+                                zombie.position.set(path.x,-20,path.z)
+                                spotLight.intensity = 0.8                    
+                            // },1000)
+                        }
+                        else{
+                            zombie_stop = 0
+                            spotLight.intensity = 0
+                            hit_clock = new THREE.Clock()
+                            movement = 0
+                            zombie_follow = 0
+                            zombie_hit = 1
+                            scene.remove(zombie)
+                        }
+                    }
+                }
             }
 
             if(hugger_follow){
                 hugger_path.push(cameraPosition)
+                console.log(hugger_path.length)
             }
 
-            if(elapsedTime > 5){
-                if(!zombie_run && zombie_follow){
-                    zombie_run = 1
-                    console.log("move")
-                    let path = zombie_path.shift()
-                    // path = zombie_path.shift()
-                    console.log(zombie_path.length)
-                    zombie.rotation.y = zombie_angle
-                    if(zombie_path.length > 20){
-                        setTimeout(function() {
-                            zombie.position.set(path.x,-20,path.z)
-                            spotLight.intensity = 0.8                    
-                        },0)
-                    }
-                    else{
-                        spotLight.intensity = 0
-                        hit_clock = new THREE.Clock()
-                        movement = 0
-                        zombie_follow = 0
-                        zombie_hit = 1
-                        scene.remove(zombie)
-                    }
-                }
-            }
+            
 
             if(elapsedTime_hugger > 5){
                 if(!hugger_run && hugger_follow){
@@ -1263,7 +1320,7 @@ function animate() {
                     // path = hugger_path.shift()
                     console.log(hugger_path.length)
                     hugger.rotation.y = hugger_angle
-                    if(hugger_path.length > 20){
+                    if(hugger_path.length > 5){
                         setTimeout(function() {
                             hugger.position.set(path.x,-20,path.z)
                             spotLight.intensity = 0.8                    
@@ -1277,26 +1334,28 @@ function animate() {
                         scene.remove(hugger)
                         hugger_hit = 1
                     }
+                    hugger.rotation.y = hugger_angle
                 }
             }
                 
         }
 
         else{
-            if(elapsedTime > 5){
+            if(elapsedTime > 5 && elapsedTime < 20 && zombie_stop){
                 if(!zombie_run && zombie_follow){
                     console.log("run")
                     let path = zombie_path.shift()
                     // path = zombie_path.shift()
                     console.log(zombie_path.length)
                     zombie.rotation.y = zombie_angle
-                    if(zombie_path.length > 20){
-                        setTimeout(function() {
+                    if(zombie_path.length > 5){
+                        // setTimeout(function() {
                             zombie.position.set(path.x,-20,path.z)
                             spotLight.intensity = 0.8                    
-                        },0)
+                        // },1000)
                     }
                     else{
+                        zombie_stop = 0
                         spotLight.intensity = 0
                         hit_clock = new THREE.Clock()
                         movement = 0
@@ -1307,7 +1366,14 @@ function animate() {
                 }
             }
 
-            if(elapsedTime_hugger > 5){
+            else if(elapsedTime > 20 && zombie_stop){
+                scene.remove(zombie)
+                zombie_stop = 0
+                zombie_follow = 0
+            }
+
+
+            if(elapsedTime_hugger > 5 && elapsedTime_hugger < 20){
                 if(!hugger_run && hugger_follow){
                     hugger_run = 1
                     console.log("move")
@@ -1315,7 +1381,7 @@ function animate() {
                     // path = hugger_path.shift()
                     console.log(hugger_path.length)
                     hugger.rotation.y = hugger_angle
-                    if(hugger_path.length > 20){
+                    if(hugger_path.length > 5){
                         setTimeout(function() {
                             hugger.position.set(path.x,-20,path.z)
                             spotLight.intensity = 0.8                    
@@ -1329,28 +1395,19 @@ function animate() {
                         scene.remove(hugger)
                         hugger_hit = 1
                     }
+                    hugger.rotation.y = hugger_angle
                 }
             }
-        //     if(zombie && zombie_move){
-        //         let path = zombie_path.shift()
 
-        //         if(path){
-        //             if(zombie_path.length > 15){
-        //                 zombie.position.set(path.x,-20,path.z)
-        //                 spotLight.intensity = 0.8
-        //             }   
-        //             else{
-        //                 spotLight.intensity = 0
-        //             }         
-        //             zombie.rotation.y = zombie_angle
-        //         }          
-        //         zombie_move = 0      
-        //     }
+            else if(elapsedTime_hugger > 5 && elapsedTime_hugger < 20){
+                scene.remove(hugger)
+            }
         }
 
         if (keyboard[68]) { // A key (turn right)
             camera.rotation.y -= player.turnSpeed;
             zombie_angle -= player.turnSpeed
+            hugger_angle -= player.turnSpeed
             const cameraDirection = new THREE.Vector3();
             camera.getWorldDirection(cameraDirection);
             // console.log("Camera Direction:", cameraDirection);
@@ -1363,24 +1420,22 @@ function animate() {
         if (keyboard[65]) { // D key (turn left)
             camera.rotation.y += player.turnSpeed;
             zombie_angle += player.turnSpeed
+            hugger_angle += player.turnSpeed
             const cameraDirection = new THREE.Vector3();
-            camera.getWorldDirection(cameraDirection);
-            // console.log("Camera Direction:", cameraDirection);
-            // console.log("Spotlight Direction:", spotLight.target.position);
-            // console.log("Camera:", cameraDirection);
+            camera.getWorldDirection(cameraDirection)
             spotLight.target.position.x = spotLight.position.x + cameraDirection.x * lightTurn;
             spotLight.target.position.z = spotLight.position.z + cameraDirection.z * lightTurn;
         }
     }
 
     else{
-        if(hit_clock && zombie_hit===1)
+        if(hit_clock && zombie_stop)
             hit_elapsedTime = hit_clock.getElapsedTime();
         
-        if(hit_clock_hugger && hugger_hit===1)
+        if(hit_clock_hugger)
             hit_elapsedTime = hit_clock_hugger.getElapsedTime();
         
-        if(zombie_hit===1 || hugger_hit===1){
+        if(zombie_hit===1 || hugger_hit===1 ){
             if(parseInt(hit_elapsedTime) >= 20){
                 display_alert(20-parseInt(hit_elapsedTime),1000)    
                 movement = 1
