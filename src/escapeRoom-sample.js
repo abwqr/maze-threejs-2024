@@ -129,7 +129,7 @@ animate();
 
 
 // var collidableMeshList = [];
-// var mouse = new THREE.Vector2();
+// var   = new THREE.Vector2();
 // var modelRayCaster = new THREE.Raycaster();
 
 // // function onMouseMove(event) {
