@@ -1,0 +1,11 @@
+Model Information:
+* title:	huggy woggy vent chase model
+* source:	https://sketchfab.com/3d-models/huggy-woggy-vent-chase-model-241b57def0814e3f87157a4c2e9e14b5
+* author:	w9rceg (https://sketchfab.com/w9rceg)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "huggy woggy vent chase model" (https://sketchfab.com/3d-models/huggy-woggy-vent-chase-model-241b57def0814e3f87157a4c2e9e14b5) by w9rceg (https://sketchfab.com/w9rceg) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

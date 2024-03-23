@@ -10,6 +10,7 @@
             "Loaders": "https://unpkg.com/three@0.130.1/examples/jsm/loaders/OBJLoader.js",
             "dat" : "https://unpkg.com/dat.gui@0.7.6/build/dat.gui.module.js",
             "GLTFLoader": "https://unpkg.com/three@0.130.1/examples/jsm/loaders/GLTFLoader.js",
+            "DRACOLoader": "https://unpkg.com/three@0.130.1/examples/jsm/loaders/DRACOLoader.js",
             "Tween": "https://unpkg.com/three@0.139.0/examples/jsm/libs/tween.module.min.js",
             "gsap" : "https://unpkg.com/gsap@3.11.4/dist/gsap.js"
           }
@@ -66,7 +67,7 @@
         <span onclick="closeFullscreenImage()" class="close">&times;</span>
         <img id="fullscreenImage" src="assets/images/chess.png" alt="Fullscreen Image">
       </div>
-        <script type="module" src = "./escapeRoom-2024.js"></script>
+        <script type="module" crossorigin src = "./escapeRoom-2024.js"></script>
         <div id="overlay">
           <img id="image" src="" alt="Fullscreen Image">
           <div id="closeButton" onclick="closeOverlay()">✖</div>
